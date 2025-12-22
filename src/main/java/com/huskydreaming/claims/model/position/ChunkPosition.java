@@ -1,23 +1,20 @@
 package com.huskydreaming.claims.model.position;
 
-public record ChunkPosition(int x, int y, int z) {
+/**
+ * Chunk column position (x,z). Represents a full-height column.
+ */
+public record ChunkPosition(int x, int z) {
 
     public static final int CHUNK_SIZE = 32;
 
     public static ChunkPosition fromBlock(BlockPosition blockPosition) {
-        var x = Math.floorDiv(blockPosition.x(), CHUNK_SIZE);
-        var y = Math.floorDiv(blockPosition.y(), CHUNK_SIZE);
-        var z = Math.floorDiv(blockPosition.z(), CHUNK_SIZE);
-
-        return new ChunkPosition(x, y, z);
+        var cx = Math.floorDiv(blockPosition.x(), CHUNK_SIZE);
+        var cz = Math.floorDiv(blockPosition.z(), CHUNK_SIZE);
+        return new ChunkPosition(cx, cz);
     }
 
     public int minBlockX() {
         return x * CHUNK_SIZE;
-    }
-
-    public int minBlockY() {
-        return y * CHUNK_SIZE;
     }
 
     public int minBlockZ() {
@@ -28,17 +25,18 @@ public record ChunkPosition(int x, int y, int z) {
         return minBlockX() + CHUNK_SIZE - 1;
     }
 
-    public int maxBlockY() {
-        return minBlockY() + CHUNK_SIZE - 1;
-    }
-
     public int maxBlockZ() {
         return minBlockZ() + CHUNK_SIZE - 1;
     }
 
+    /**
+     * Returns true if the block is inside this column in X/Z (Y ignored).
+     *
+     * @param block block position
+     * @return true if the block's X/Z lies within this chunk column
+     */
     public boolean contains(BlockPosition block) {
         return block.x() >= minBlockX() && block.x() <= maxBlockX()
-                && block.y() >= minBlockY() && block.y() <= maxBlockY()
                 && block.z() >= minBlockZ() && block.z() <= maxBlockZ();
     }
 }

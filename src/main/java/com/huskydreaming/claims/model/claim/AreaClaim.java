@@ -7,9 +7,17 @@ import com.huskydreaming.claims.model.position.BoundingBox;
 import com.huskydreaming.claims.model.position.ChunkPosition;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 public record AreaClaim(UUID worldId, BoundingBox boundingBox, ClaimOwner claimOwner, int flagMask, int priority) {
+
+    public AreaClaim {
+        Objects.requireNonNull(worldId, "worldId");
+        Objects.requireNonNull(boundingBox, "boundingBox");
+        Objects.requireNonNull(claimOwner, "claimOwner");
+    }
 
     public boolean allows(ClaimFlag flag) {
         return (flagMask & flag.getBit()) != 0;
@@ -29,28 +37,32 @@ public record AreaClaim(UUID worldId, BoundingBox boundingBox, ClaimOwner claimO
         return allows(flag);
     }
 
+    /**
+     * Returns all chunk columns touched by this claim (X/Z only).
+     *
+     * <p>Assumes {@link BoundingBox} max values are inclusive.</p>
+     */
     public Iterable<ChunkPosition> touchedChunks() {
-        var minCx = Math.floorDiv(boundingBox.minX(), ChunkPosition.CHUNK_SIZE);
-        var minCy = Math.floorDiv(boundingBox.minY(), ChunkPosition.CHUNK_SIZE);
-        var minCz = Math.floorDiv(boundingBox.minZ(), ChunkPosition.CHUNK_SIZE);
+        var minChunkX = Math.floorDiv(boundingBox.minX(), ChunkPosition.CHUNK_SIZE);
+        var minChunkZ = Math.floorDiv(boundingBox.minZ(), ChunkPosition.CHUNK_SIZE);
 
-        var maxCx = Math.floorDiv(boundingBox.maxX(), ChunkPosition.CHUNK_SIZE);
-        var maxCy = Math.floorDiv(boundingBox.maxY(), ChunkPosition.CHUNK_SIZE);
-        var maxCz = Math.floorDiv(boundingBox.maxZ(), ChunkPosition.CHUNK_SIZE);
+        var maxChunkX = Math.floorDiv(boundingBox.maxX(), ChunkPosition.CHUNK_SIZE);
+        var maxChunkZ = Math.floorDiv(boundingBox.maxZ(), ChunkPosition.CHUNK_SIZE);
 
-        var xCount = (maxCx - minCx) + 1;
-        var yCount = (maxCy - minCy) + 1;
-        var zCount = (maxCz - minCz) + 1;
+        if (maxChunkX < minChunkX || maxChunkZ < minChunkZ) {
+            return List.of();
+        }
 
-        var chunkPositions = new ArrayList<ChunkPosition>(xCount * yCount * zCount);
+        var xCount = (maxChunkX - minChunkX) + 1;
+        var zCount = (maxChunkZ - minChunkZ) + 1;
 
-        for (var cx = minCx; cx <= maxCx; cx++) {
-            for (var cy = minCy; cy <= maxCy; cy++) {
-                for (var cz = minCz; cz <= maxCz; cz++) {
-                    chunkPositions.add(new ChunkPosition(cx, cy, cz));
-                }
+        var out = new ArrayList<ChunkPosition>(xCount * zCount);
+
+        for (var cx = minChunkX; cx <= maxChunkX; cx++) {
+            for (var cz = minChunkZ; cz <= maxChunkZ; cz++) {
+                out.add(new ChunkPosition(cx, cz));
             }
         }
-        return chunkPositions;
+        return out;
     }
 }
