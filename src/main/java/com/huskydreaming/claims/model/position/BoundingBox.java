@@ -2,22 +2,28 @@ package com.huskydreaming.claims.model.position;
 
 public record BoundingBox(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
 
-    public static BoundingBox of(BlockPosition a, BlockPosition b) {
-        var minX = Math.min(a.x(), b.x());
-        var minY = Math.min(a.y(), b.y());
-        var minZ = Math.min(a.z(), b.z());
+    public BoundingBox {
+        if (minX > maxX) throw new IllegalArgumentException("minX > maxX");
+        if (minY > maxY) throw new IllegalArgumentException("minY > maxY");
+        if (minZ > maxZ) throw new IllegalArgumentException("minZ > maxZ");
+    }
 
-        var maxX = Math.max(a.x(), b.x());
-        var maxY = Math.max(a.y(), b.y());
-        var maxZ = Math.max(a.z(), b.z());
+    public static BoundingBox of(BlockPosition a, BlockPosition b) {
+        int minX = Math.min(a.x(), b.x());
+        int minY = Math.min(a.y(), b.y());
+        int minZ = Math.min(a.z(), b.z());
+
+        int maxX = Math.max(a.x(), b.x());
+        int maxY = Math.max(a.y(), b.y());
+        int maxZ = Math.max(a.z(), b.z());
 
         return new BoundingBox(minX, minY, minZ, maxX, maxY, maxZ);
     }
 
-    public boolean contains(BlockPosition pos) {
-        return pos.x() >= minX && pos.x() <= maxX
-                && pos.y() >= minY && pos.y() <= maxY
-                && pos.z() >= minZ && pos.z() <= maxZ;
+    public boolean contains(BlockPosition position) {
+        return position.x() >= minX && position.x() <= maxX
+                && position.y() >= minY && position.y() <= maxY
+                && position.z() >= minZ && position.z() <= maxZ;
     }
 
     public boolean intersects(BoundingBox other) {

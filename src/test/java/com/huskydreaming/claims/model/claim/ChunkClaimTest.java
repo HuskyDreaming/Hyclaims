@@ -1,24 +1,27 @@
 package com.huskydreaming.claims.model.claim;
 
 import com.huskydreaming.claims.enumeration.ClaimFlag;
-import com.huskydreaming.claims.model.owners.PlayerOwner;
+import com.huskydreaming.claims.model.position.BlockPosition;
 import com.huskydreaming.claims.model.position.ChunkPosition;
-import com.huskydreaming.claims.model.world.WorldChunk;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class ChunkClaimTest {
+class ChunkClaimTest {
 
     @Test
     void allowsReflectsBitMask() {
-        var owner = new PlayerOwner(UUID.randomUUID());
-        var worldChunk = new WorldChunk(UUID.randomUUID(), new ChunkPosition(0, 0));
+        UUID worldId = UUID.randomUUID();
+        UUID ownerId = UUID.randomUUID();
 
-        var mask = ClaimFlag.BUILD.getBit() | ClaimFlag.INTERACT.getBit();
-        var claim = new ChunkClaim(owner, worldChunk, mask);
+        int mask = ClaimFlag.BUILD.getBit() | ClaimFlag.INTERACT.getBit();
+
+        BlockPosition blockPosition = new BlockPosition(0, 0, 0);
+        ChunkPosition chunkPosition = ChunkPosition.fromBlock(blockPosition);
+
+        ChunkClaim claim = new ChunkClaim(worldId, ownerId, chunkPosition, mask);
 
         assertTrue(claim.allows(ClaimFlag.BUILD));
         assertTrue(claim.allows(ClaimFlag.INTERACT));
@@ -32,30 +35,34 @@ public class ChunkClaimTest {
 
     @Test
     void canOwnerAlwaysAllowedEvenIfMaskIsZero() {
-        var ownerId = UUID.randomUUID();
-        var owner = new PlayerOwner(ownerId);
+        UUID worldId = UUID.randomUUID();
+        UUID ownerId = UUID.randomUUID();
 
-        var worldChunk = new WorldChunk(UUID.randomUUID(), new ChunkPosition(5, -2));
-        var claim = new ChunkClaim(owner, worldChunk, 0);
+        BlockPosition blockPosition = new BlockPosition(5, 0, -2);
+        ChunkPosition chunkPosition = ChunkPosition.fromBlock(blockPosition);
 
-        assertTrue(claim.can(ownerId, ClaimFlag.BUILD));
-        assertTrue(claim.can(ownerId, ClaimFlag.BREAK));
-        assertTrue(claim.can(ownerId, ClaimFlag.INTERACT));
-        assertTrue(claim.can(ownerId, ClaimFlag.CONTAINERS));
-        assertTrue(claim.can(ownerId, ClaimFlag.PVP));
-        assertTrue(claim.can(ownerId, ClaimFlag.EXPLOSIONS));
-        assertTrue(claim.can(ownerId, ClaimFlag.PROJECTILES));
+        ChunkClaim claim = new ChunkClaim(worldId, ownerId, chunkPosition, 0);
+
+        for (ClaimFlag flag : ClaimFlag.values()) {
+            assertTrue(
+                    claim.can(ownerId, flag),
+                    "Owner should always be allowed for flag " + flag
+            );
+        }
     }
 
     @Test
     void canNonOwnerDependsOnMask() {
-        var owner = new PlayerOwner(UUID.randomUUID());
-        var nonOwnerId = UUID.randomUUID();
+        UUID worldId = UUID.randomUUID();
+        UUID ownerId = UUID.randomUUID();
+        UUID nonOwnerId = UUID.randomUUID();
 
-        var worldChunk = new WorldChunk(UUID.randomUUID(), new ChunkPosition(0, 0));
+        int mask = ClaimFlag.INTERACT.getBit() | ClaimFlag.CONTAINERS.getBit();
 
-        var mask = ClaimFlag.INTERACT.getBit() | ClaimFlag.CONTAINERS.getBit();
-        var claim = new ChunkClaim(owner, worldChunk, mask);
+        BlockPosition blockPosition = new BlockPosition(0, 0, 0);
+        ChunkPosition chunkPosition = ChunkPosition.fromBlock(blockPosition);
+
+        ChunkClaim claim = new ChunkClaim(worldId, ownerId, chunkPosition, mask);
 
         assertTrue(claim.can(nonOwnerId, ClaimFlag.INTERACT));
         assertTrue(claim.can(nonOwnerId, ClaimFlag.CONTAINERS));

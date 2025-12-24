@@ -1,10 +1,13 @@
 package com.huskydreaming.claims.model.claim;
 
+import com.huskydreaming.claims.helpers.SpatialGrid;
 import com.huskydreaming.claims.model.helpers.AreaClaimHelper;
 import com.huskydreaming.claims.model.position.BlockPosition;
 import com.huskydreaming.claims.model.position.ChunkPosition;
 import org.junit.jupiter.api.Test;
 
+import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -13,79 +16,163 @@ public class AreaClaimTest {
 
     @Test
     void touchedChunksSpansMultipleChunksIncludingNegative() {
-        var claim = AreaClaimHelper.areaClaim(
+        AreaClaim claim = AreaClaimHelper.areaClaim(
                 0, 0, 0,
                 63, 10, 63
         );
 
-        var touched = AreaClaimHelper.toSet(claim.touchedChunks());
+        Set<ChunkPosition> touched = AreaClaimHelper.toSet(
+                SpatialGrid.touchedChunks(claim.bounds())
+        );
 
+        assertEquals(4, touched.size());
         assertTrue(touched.contains(new ChunkPosition(0, 0)));
         assertTrue(touched.contains(new ChunkPosition(1, 0)));
         assertTrue(touched.contains(new ChunkPosition(0, 1)));
         assertTrue(touched.contains(new ChunkPosition(1, 1)));
-        assertEquals(4, touched.size(), "Expected 2x2 chunks touched");
     }
 
     @Test
     void touchedChunksHandlesNegativeCoordinatesCorrectly() {
-        var claim = AreaClaimHelper.areaClaim(
+        AreaClaim claim = AreaClaimHelper.areaClaim(
                 -1, 0, -1,
                 0, 10, 0
         );
 
-        var touched = AreaClaimHelper.toSet(claim.touchedChunks());
+        Set<ChunkPosition> touched = AreaClaimHelper.toSet(
+                SpatialGrid.touchedChunks(claim.bounds())
+        );
 
+        assertEquals(4, touched.size());
         assertTrue(touched.contains(new ChunkPosition(-1, -1)));
         assertTrue(touched.contains(new ChunkPosition(0, -1)));
         assertTrue(touched.contains(new ChunkPosition(-1, 0)));
         assertTrue(touched.contains(new ChunkPosition(0, 0)));
-        assertEquals(4, touched.size(), "Expected 2x2 chunks touched");
     }
 
     @Test
     void touchedChunksInclusiveMaxBoundaryCase() {
-
-        var claim = AreaClaimHelper.areaClaim(
+        AreaClaim claim = AreaClaimHelper.areaClaim(
                 0, 0, 0,
                 32, 10, 32
         );
 
-        var touched = AreaClaimHelper.toSet(claim.touchedChunks());
+        Set<ChunkPosition> touched = AreaClaimHelper.toSet(
+                SpatialGrid.touchedChunks(claim.bounds())
+        );
 
-        assertTrue(touched.contains(new ChunkPosition(0, 0)));
-        assertTrue(touched.contains(new ChunkPosition(1, 0)));
-        assertTrue(touched.contains(new ChunkPosition(0, 1)));
-        assertTrue(touched.contains(new ChunkPosition(1, 1)));
         assertEquals(4, touched.size());
     }
 
     @Test
-    void touchedChunksCoversAllSampledBlocksInsideBox() {
-        var claim = AreaClaimHelper.areaClaim(
-                -70, 5, -10,
-                90, 77, 130
+    void touchedCellsCoversAllCellsWithinBounds() {
+        AreaClaim claim = AreaClaimHelper.areaClaim(
+                0, 0, 0,
+                15, 10, 15
         );
 
-        var touched = AreaClaimHelper.toSet(claim.touchedChunks());
+        Iterable<Long> cells = SpatialGrid.touchedCells(claim.bounds());
+        Set<Long> cellSet = AreaClaimHelper.toLongSet(cells);
 
-        for (var x : new int[]{-70, -69, -33, -32, -31, 0, 31, 32, 33, 89, 90}) {
-            for (var z : new int[]{-10, -9, -1, 0, 31, 32, 63, 64, 129, 130}) {
-                var p = new BlockPosition(x, 10, z);
-                assertTrue(claim.contains(p), "Sample should be inside bounding box: " + p);
+        // 0–15 with CELL_SIZE=8 → cells (0,0), (1,0), (0,1), (1,1)
+        assertEquals(4, cellSet.size());
 
-                var chunk = ChunkPosition.fromBlock(p);
-                assertTrue(touched.contains(chunk), "Missing touched chunk " + chunk + " for block " + p);
+        assertTrue(cellSet.contains(SpatialGrid.cellKey(0, 0)));
+        assertTrue(cellSet.contains(SpatialGrid.cellKey(1, 0)));
+        assertTrue(cellSet.contains(SpatialGrid.cellKey(0, 1)));
+        assertTrue(cellSet.contains(SpatialGrid.cellKey(1, 1)));
+    }
+
+    @Test
+    void touchedCellsHandlesNegativeCoordinates() {
+        AreaClaim claim = AreaClaimHelper.areaClaim(
+                -9, 0, -9,
+                0, 10, 0
+        );
+
+        Iterable<Long> cells = SpatialGrid.touchedCells(claim.bounds());
+        Set<Long> cellSet = AreaClaimHelper.toLongSet(cells);
+
+        assertEquals(9, cellSet.size());
+
+        assertTrue(cellSet.contains(SpatialGrid.cellKey(-2, -2)));
+        assertTrue(cellSet.contains(SpatialGrid.cellKey(-1, -2)));
+        assertTrue(cellSet.contains(SpatialGrid.cellKey(0, -2)));
+
+        assertTrue(cellSet.contains(SpatialGrid.cellKey(-2, -1)));
+        assertTrue(cellSet.contains(SpatialGrid.cellKey(-1, -1)));
+        assertTrue(cellSet.contains(SpatialGrid.cellKey(0, -1)));
+
+        assertTrue(cellSet.contains(SpatialGrid.cellKey(-2, 0)));
+        assertTrue(cellSet.contains(SpatialGrid.cellKey(-1, 0)));
+        assertTrue(cellSet.contains(SpatialGrid.cellKey(0, 0)));
+    }
+
+    @Test
+    void everyBlockInsideBoundsMapsToTouchedCell() {
+        AreaClaim claim = AreaClaimHelper.areaClaim(
+                -20, 5, -20,
+                20, 15, 20
+        );
+
+        Iterable<Long> cells = SpatialGrid.touchedCells(claim.bounds());
+        Set<Long> cellSet = AreaClaimHelper.toLongSet(cells);
+
+        for (int x = -20; x <= 20; x += 3) {
+            for (int z = -20; z <= 20; z += 3) {
+                BlockPosition p = new BlockPosition(x, 10, z);
+                assertTrue(claim.contains(p));
+
+                long cellKey = SpatialGrid.cellKeyFromBlock(x, z);
+                assertTrue(
+                        cellSet.contains(cellKey),
+                        "Missing cell for block " + p
+                );
             }
         }
     }
 
     @Test
     void intersectsFalseIfDifferentWorld() {
-        var a = AreaClaimHelper.areaClaim(UUID.randomUUID(), 0, 0, 0, 10, 10, 10);
-        var b = AreaClaimHelper.areaClaim(UUID.randomUUID(), 0, 0, 0, 10, 10, 10);
+        AreaClaim a = AreaClaimHelper.areaClaim(UUID.randomUUID(), 0, 0, 0, 10, 10, 10);
+        AreaClaim b = AreaClaimHelper.areaClaim(UUID.randomUUID(), 0, 0, 0, 10, 10, 10);
 
         assertFalse(a.intersects(b));
         assertFalse(b.intersects(a));
+    }
+
+    @Test
+    void touchedCellsAlwaysCoverAllBlocksInsideBounds() {
+        Random rnd = new Random(42);
+
+        for (int i = 0; i < 500; i++) {
+            int minX = rnd.nextInt(400) - 200;
+            int minZ = rnd.nextInt(400) - 200;
+
+            int maxX = minX + rnd.nextInt(200) + 1;
+            int maxZ = minZ + rnd.nextInt(200) + 1;
+
+            AreaClaim claim = AreaClaimHelper.areaClaim(
+                    minX, 0, minZ,
+                    maxX, 20, maxZ
+            );
+
+            Set<Long> touched = AreaClaimHelper.toLongSet(
+                    SpatialGrid.touchedCells(claim.bounds())
+            );
+
+            for (int x = minX; x <= maxX; x++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    BlockPosition block = new BlockPosition(x, 5, z);
+
+                    assertTrue(
+                            touched.contains(
+                                    SpatialGrid.cellKeyFromBlock(block)
+                            ),
+                            "Missing cell for block " + block
+                    );
+                }
+            }
+        }
     }
 }

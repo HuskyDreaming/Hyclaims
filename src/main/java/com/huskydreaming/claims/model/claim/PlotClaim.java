@@ -1,28 +1,32 @@
 package com.huskydreaming.claims.model.claim;
 
 import com.huskydreaming.claims.enumeration.ClaimFlag;
+import com.huskydreaming.claims.enumeration.ClaimType;
 import com.huskydreaming.claims.model.position.BlockPosition;
 import com.huskydreaming.claims.model.position.BoundingBox;
 
 import java.util.Objects;
 import java.util.UUID;
 
-public record AreaClaim(
+public record PlotClaim(
         UUID worldId,
         UUID ownerId,
         BoundingBox bounds,
         int flagMask,
-        int priority
+        int priority,
+        ClaimType parentClaimType,
+        UUID parentClaimId
 ) {
 
-    public AreaClaim {
+    public PlotClaim {
         Objects.requireNonNull(worldId, "worldId");
         Objects.requireNonNull(ownerId, "ownerId");
         Objects.requireNonNull(bounds, "bounds");
+        Objects.requireNonNull(parentClaimType, "parentClaimType");
+        Objects.requireNonNull(parentClaimId, "parentClaimId");
     }
 
     public boolean allows(ClaimFlag flag) {
-        Objects.requireNonNull(flag, "flag");
         return (flagMask & flag.getBit()) != 0;
     }
 
@@ -33,12 +37,14 @@ public record AreaClaim(
     }
 
     public boolean contains(BlockPosition pos) {
-        Objects.requireNonNull(pos, "pos");
         return bounds.contains(pos);
     }
 
-    public boolean intersects(AreaClaim other) {
-        Objects.requireNonNull(other, "other");
-        return worldId.equals(other.worldId) && bounds.intersects(other.bounds);
+    public boolean isChunkPlot() {
+        return parentClaimType == ClaimType.CHUNK;
+    }
+
+    public boolean isAreaPlot() {
+        return parentClaimType == ClaimType.AREA;
     }
 }

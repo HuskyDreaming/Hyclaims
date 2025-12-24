@@ -12,7 +12,7 @@ public final class ClaimFlags {
 
     public static int all() {
         int mask = 0;
-        for (var flag : ClaimFlag.values()) {
+        for (ClaimFlag flag : ClaimFlag.values()) {
             mask |= flag.getBit();
         }
         return mask;
@@ -20,7 +20,7 @@ public final class ClaimFlags {
 
     public static int of(ClaimFlag... flags) {
         int mask = 0;
-        for (var flag : flags) {
+        for (ClaimFlag flag : flags) {
             mask |= flag.getBit();
         }
         return mask;
