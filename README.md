@@ -1,6 +1,6 @@
 # 🗺️ Atlas
 
-Atlas is a work-in-progress land claiming system for Hytale servers, built with a strong focus on correctness, performance, and long-term maintainability.
+Atlas is a work in progress land claiming system for Hytale servers, built with a strong focus on correctness, performance, and long term maintainability.
 
 Because Hytale has not yet been released, Atlas is currently developed as a core library, with gameplay features being added progressively as the server API becomes available.
 
@@ -16,7 +16,7 @@ These features are planned but not yet finalized:
 - Integration hooks for other plugins
 - Visualization and debugging tools
 
-The goal is to implement these incrementally and correctly, rather than rushing API-dependent code.
+The goal is to implement these incrementally and correctly, rather than rushing API dependent code.
 
 ---
 
